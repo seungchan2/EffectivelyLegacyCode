@@ -57,3 +57,101 @@
 - 아래의 사진으로 예시를 들어보자.
 <img width="505" alt="스크린샷 2024-06-05 오후 5 17 56" src="https://github.com/seungchan2/EffectivelyLegacyCode/assets/80672561/32ab8286-c98d-4bba-9e92-d95c1e38b10e">
 
+
+### 수정 전 코드
+```swift
+class InvoiceUpdateResponder {
+    private let dbConnection: DBConnection
+    private let servlet: InvoiceUpdateServlet
+
+    init(dbConnection: DBConnection, servlet: InvoiceUpdateServlet) {
+        self.dbConnection = dbConnection
+        self.servlet = servlet
+    }
+
+    func getResponseText() -> String {
+        return ""
+    }
+}
+
+class Invoice {
+    init() {
+        // Invoice 생성자
+    }
+
+    func getValue() -> Int {
+        // getValue 메서드
+        return 0
+    }
+}
+```
+
+### 수정 후 코드
+```swift
+// InvoiceUpdateServlet 인터페이스
+protocol InvoiceUpdateServlet {
+    func execute(request: HttpServletRequest, response: HttpServletResponse)
+    func buildUpdate()
+}
+
+// DBConnection 인터페이스
+protocol DBConnection {
+    func getInvoices(criteria: Criteria) -> [Invoice]
+}
+
+// InvoiceUpdateResponder 클래스
+class InvoiceUpdateResponder {
+    private let dbConnection: DBConnection
+    private let invoiceIDs: [String]
+
+    init(dbConnection: DBConnection, invoiceIDs: [String]) {
+        self.dbConnection = dbConnection
+        self.invoiceIDs = invoiceIDs
+    }
+
+    // 변경된 메서드
+    func getResponseText() -> String {
+        // InvoiceUpdateServlet로부터 전달받은 invoiceIDs를 사용하여 응답 텍스트 생성
+        return ""
+    }
+
+    func update() {
+        // 업데이트 로직
+    }
+}
+
+// DBConnection 인터페이스 구현
+class RealDBConnection: DBConnection {
+    func getInvoices(criteria: Criteria) -> [Invoice] {
+        // 실제 데이터베이스에서 Invoice를 가져오는 로직
+        return []
+    }
+}
+
+// 기존 클래스나 인터페이스
+class Criteria {
+    // 기준에 대한 정보를 포함하는 클래스
+}
+```
+- #### 문제점
+- `InvoiceUpdateResponder`는 DBConnection과 `InvoiceUpdateServlet`을 필요로 함.
+- 데이터베이스 설정 및 사용은 비효율적이며 테스트를 느리게 함.
+- `InvoiceUpdateServlet`의 생성이 복잡하며 필요한 상태로 만들기 어려움.
+
+#### 해결책
+- `InvoiceUpdateResponder`는 `InvoiceUpdateServlet`에서 필요한 정보만 전달받도록 변경.
+- DBConnection의 의존성을 인터페이스(IDBConnection)로 대체.
+
+#### 결론
+- 의존성이 높은 클래스는 테스트가 어렵기 때문에 이를 해결하기 위해 인터페이스 도입 및 필요한 데이터만 전달하는 방식으로 변경.
+- 레거시 작업 코드 작업은 코드를 좀 더 쉽게 변경할 수 있도록 의존 관계를 제거하는 작업을 포함한다.
+
+#### 수정 후 사진
+<img width="505" alt="스크린샷 2024-06-07 오후 1 38 05" src="https://github.com/seungchan2/EffectivelyLegacyCode/assets/80672561/c9d10ea8-b071-4b96-8aa0-db16ca7eadd5">
+
+### 레거시 코드를 변경하는 순서
+1. 변경 지점을 식별한다.
+2. 테스트 루틴을 작성할 위치를 찾는다.
+3. 의존 관계를 제거한다.
+4. 테스트 루틴을 작성한다.
+5. 변경 및 리팩토링을 수행한다.
