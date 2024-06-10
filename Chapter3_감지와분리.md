@@ -27,4 +27,30 @@ class NetworkBridge {
 - 다양한 해결 방법이 있지만 엄청난 코스트가 든다.
 - 클래스의 메소드가 호출될 때의 영향을 감지할 수도 없고, 애플리케이션의 나머지 부분과 분리해서 실행할 수 없기 때문에 감지와 분리의 예시 중 하나이다.
 
-... 작성중
+### 협업 클래스 위장하기
+- 레거시 코드를 다룰 떄의 가장 큰 문제 중 하나는 '의존 관계'이다.
+- 다른 코드를 별도의 코드로 대체할 수 있다면, 변경 대상을 테스트하는 루틴을 작성할 수 있으며, 이것을 가짜 객체 혹은 위장 객체라 한다.
+
+### 가짜 객체
+- Sale 객체에 인수로서 전달되는 디스플레이 객체는 Display 인터페이스를 구현하는 클래스이기만 하면 어떤 클래스의 객체도 가능하다.
+```swift
+protocol Display {
+    func showLine(_ line: String)
+}
+
+class Sale {
+    private var display: Display
+    
+    init(display: Display) {
+        self.display = display
+    }
+    
+    func scan(_ barcode: String) {
+        // 아이템 정보를 얻는 코드
+        let itemName = item.name
+        let itemPrice = "\(item.price.asDisplayText())"
+        let itemLine = "\(itemName) \(itemPrice)"
+        display.showLine(itemLine)
+    }
+} 
+```
