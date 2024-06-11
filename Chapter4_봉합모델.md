@@ -112,3 +112,47 @@ func testAccountUpdate() {
   - 모든 봉합은 활성화 지점을 갖는다. 활성화 지점에서는 어느 동작을 사용할지 선택할 수 있다.
  
 ### 링크 봉합
+- 대부분의 언어 시스템에서는 컴파일이 빌드 프로세스의 마지막 단계가 아니다.
+- 컴파일러는 코드의 중간 표현을 생성하고, 이 표현은 다른 파일의 코드 호출을 포함한다.
+- 링크는 이러한 표현을 결합하여 런타임에 완전한 프로그램을 만든다.
+- 링크 seam은 프로그램의 동작을 코드 수정 없이 변경할 수 있는 지점을 제공하며, 빌드 스크립트나 배포 스크립트 외부에서 사용된다.
+- 테스트와 실제 환경의 차이가 명확하도록 하는 것이 중요하다.
+
+### 객체 봉합
+- 객체 봉합은 객체 지향 프로그래밍 언어에서 가장 유용한 봉합 유형 중 하나이다.
+
+```swift
+cell.recalculate()
+```
+- cell 객체가 어떤 클래스의 인스턴스인지에 따라 호출되는 메서드가 달라진다.
+```swift
+class CustomSpreadsheet: Spreadsheet {
+    func buildMartSheet() {
+        let cell = FormulaCell(spreadsheet: self, address: "A1", formula: "=A2+A3")
+        cell.recalculate()
+    }
+}
+```
+- FormulaCell이 고정되어 있기 때문에 객체 봉합이 아니다.
+
+```swift
+class CustomSpreadsheet: Spreadsheet {
+    func buildMartSheet(cell: Cell) {
+        cell.recalculate()
+    }
+}
+```
+- cell.recalculate()는 봉합 지점이다.
+- 호출하는 쪽의 코드를 변경하지 않으면서 cell.recalculate() 메소드의 동작을 변경할 수 있다.
+
+```swift
+class CustomSpreadsheet: Spreadsheet {
+    func buildMartSheet(cell: Cell) {
+        Recalculate(cell)
+    }
+    static func Recalculate(cell: Cell) {
+        ...
+    }
+}
+```
+- 정적 메서드를 비정적으로 만들어 서브클래싱하여 테스트 중에 재정의할 수 있다.
