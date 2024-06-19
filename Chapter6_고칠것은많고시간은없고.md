@@ -118,4 +118,180 @@ class TransactionGate {
 ### 발아 클래스
 - 발아 메소느는 복잡하게 얽힌 의존 관계에서 효과적이지 않다.
 - 객체 생성과 관련된 의존 관계가 많이 존재하기 때문에 클래스의 인스턴스의 생성이 어려울 수 있다.
-  
+
+### 포장 메소드
+- 추가 코드가 기존 코드와 동시에 실행될 수 있는데, 과도하게 사용되면 품질을 저하시킨다.
+- 이미 코드가 너무 복잡해져 봉합 기법을 사용하지 않으면 분리하기 힘들다.
+
+```swift
+class Employee {
+   .
+   .
+   .
+
+    private func dispatchPayment() {
+        let amount = Money()
+        for card in timecards {
+            if payPeriod.contains(date) {
+                amount.add(hours: card.getHours() * payRate)
+            }
+        }
+        payDispatcher.pay(employee: self, date: date, amount: amount)
+    }
+
+    public func pay() {
+        logPayment()
+        dispatchPayment()
+    }
+
+    private func logPayment() {
+    }
+}
+
+class Timecard {
+    func getHours() -> Double {
+        return 0.0
+    }
+}
+
+class PayPeriod {
+    func contains(_ date: Date) -> Bool {
+        // 날짜 포함 여부 확인 로직
+        return true
+    }
+}
+
+class PayDispatcher {
+    func pay(employee: Employee, date: Date, amount: Money) {
+    }
+}
+
+class Money {
+    private var amount: Double = 0.0
+
+    func add(hours: Double) {
+        amount += hours
+    }
+}
+
+```
+- pay() -> dispatchPayment()로 변경하고 private로 만들었다.
+- dispatchPayment()를 호출하는 새로운 pay 메소드를 작성했다.
+- 기존 메소드와 이름이 같은 메소드를 생성하고 기존 코드에 처리를 위임한다.
+
+### 장점과 단점
+#### 장점
+
+1. 유지보수성 향상
+   - 새로운 기능을 추가할 때 기존 로직에 최소한의 영향을 미치므로 코드의 유지보수가 용이하다.
+
+2. 가독성 향상
+   - pay() 메서드는 로그 기록과 지급 처리를 명확히 분리하여 각 메서드의 역할을 더 명확하게 한다.
+3. 클라이언트 코드 변경 없음
+   - 기존의 pay() 메서드를 호출하는 클라이언트는 변경 사항을 인지할 필요 없이 동일한 메서드를 호출할 수 있다.
+
+#### 단점
+1. 기존 로직과 새로운 기능의 독립성
+   - 새로운 기능이 기존 로직과 얽혀서는 안 되며, 기존 로직 이전이나 이후에 실행되어야 한다.
+2. 기존 메서드 이름 변경
+   - 기존 메서드의 이름을 변경해야 할 수 있으며, 새로운 이름을 정하는 것이 어려울 수 있다.
+
+### 포장 메소드 동작 단계
+1. 변경해야 할 메소드를 식별한다.
+2. 변경이 메소드 내의 특정 위치에서 구현 가능하다면, 메소드 이름을 바꾸고 기존 메소드와 동일한 이름과 시그니처를 갖는 메소드를 새로 작성한다.
+3. 새로운 메소드에서 기존 메소드를 호출한다.
+4. 새로운 기능을 위한 메소드를 테스트 주도 개발을 통해 작성하고, 이 메소드를 단계 2에서 작성한 신규 메소드에서 호출한다.
+
+### 포장 클래스
+```swift
+protocol Employee {
+    func pay()
+}
+
+class RegularEmployee: Employee {
+    func pay() {
+        let amount = Money()
+        for card in timecards {
+            if payPeriod.contains(date) {
+                amount.add(hours: card.getHours() * payRate)
+            }
+        }
+        payDispatcher.pay(employee: self, date: date, amount: amount)
+    }
+
+    // 필요한 프로퍼티 및 메서드들
+    var timecards: [Timecard] = []
+    var payPeriod: PayPeriod
+    var date: Date
+    var payRate: Double
+    var payDispatcher: PayDispatcher
+
+    init(timecards: [Timecard], payPeriod: PayPeriod, date: Date, payRate: Double, payDispatcher: PayDispatcher) {
+        self.timecards = timecards
+        self.payPeriod = payPeriod
+        self.date = date
+        self.payRate = payRate
+        self.payDispatcher = payDispatcher
+    }
+}
+
+class LoggingEmployee: Employee {
+    private let employee: Employee
+
+    init(employee: Employee) {
+        self.employee = employee
+    }
+
+    func pay() {
+        logPayment()
+        employee.pay()
+    }
+
+    private func logPayment() {
+        // 로그 기록 로직
+    }
+}
+
+// 관련 클래스 및 구조체 정의
+class Timecard {
+    func getHours() -> Double {
+        return 8.0 // 예시로 8시간을 반환
+    }
+}
+
+class PayPeriod {
+    func contains(_ date: Date) -> Bool {
+        return true // 예시로 항상 true를 반환
+    }
+}
+
+class PayDispatcher {
+    func pay(employee: Employee, date: Date, amount: Money) {
+        // 지급 로직
+    }
+}
+
+class Money {
+    private var amount: Double = 0.0
+
+    func add(hours: Double) {
+        amount += hours
+    }
+}
+```
+- 데코레이터 패턴이라고 불린다.
+-  다른 클래스를 감싸는 클래스의 객체를 생성하여 전달하고ㅡ 감싸는 클래스는 감싸고 있는 클래스와 동일한 인터페이스를 가져야 하므로 클라이언트는 래퍼와 작업하고 있다는 것을 알 수 없다.
+- 예제에서 LoggingEmployee는 Employee의 데코레이터이다.
+- pay() 메서드와 클라이언트가 사용하는 Employee의 다른 메서드를 가져야 한다.
+
+#### 장점
+1. 새로운 기능을 기존 코드에 영향을 주지 않고 추가할 수 있다.
+2. 클래스의 동작을 동적으로 확장할 수 있다.
+
+#### 단점
+1. 클래스가 많아지면 관리가 복잡해질 수 있다.
+2. 모든 메서드를 래핑해야 하므로 코드가 중복될 수 있다.
+
+### 포장 클래스의 사용 고려
+1. 추가하려는 동작이 완전히 독립적이며, 구현에 의존적인 동작이나 관련 없는 동작으로 기존 클래스를 오염시키고 싶지 않을 경우
+2. 클래스가 비대해져서 더 이상 키우고 싶지 않은 경우
